@@ -1,6 +1,8 @@
 import pdb
 from nltk.corpus import wordnet
 import math
+from scipy import spatial
+import numpy as np
 
 def similarity_function(T1, T2, T) :
 
@@ -55,6 +57,17 @@ def get_information(word, sentence_list) :
 
     word_count = sentence_list.count(word)
     return(1 - (math.log10(word_count + 1)/math.log10(len(sentence_list) + 1)))
+
+def semantic_similarity(T1, T2) :
+    #dataSetI = [0.390, 0.330, 0.179, 0.146, 0.239, 0.074, 0, 0.082, 0.1, 0, 0, 0, 0.263, 0.288]
+    #dataSetII = [0.390, 0, 0.1, 0, 0, 0, 0.023, 0.479, 0.285, 0.075, 0.043, 0.354, 0.267, 0.321]
+    return(1 - spatial.distance.cosine(T1, T2))
+
+def word_order_similarity(r1, r2) :
+    #r1 = np.array([1, 2, 3, 4, 5, 6, 0, 3, 3, 0, 0, 0, 1, 1])
+    #r2 = np.array([4, 0, 3, 0, 0, 0, 1, 2, 3, 5, 6, 7, 8, 9])
+    return 1.0 - (np.linalg.norm(r1 - r2) / np.linalg.norm(r1 + r2))
+
 
 if __name__ == '__main__' :
     T1 = "RAM keeps things being worked with"
