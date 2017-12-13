@@ -1,10 +1,10 @@
+from scipy import spatial
 import pdb
 from nltk.corpus import wordnet
 import math
-from scipy import spatial
 import numpy as np
 
-def similarity_function(T1, T2, T) :
+def similarity_function(T1, T) :
 
     s1 = []
     s1_word = []
@@ -31,6 +31,7 @@ def similarity_function(T1, T2, T) :
                 s1_word.append('No match')
             else:
                 #If the similarity is above the threshold then only include it
+                s1_try = [x for x in s1_try if x is not None]
                 if max(s1_try) > 0.2 :
                     ind = s1_try.index(max(s1_try))
                     s1.append(s1_try[ind])
@@ -51,12 +52,14 @@ def similarity_function(T1, T2, T) :
         else :
             word_order_vector.append(T1.index(s1_word[i]) + 1)
 
-    print(word_order_vector)
+    return s1, word_order_vector
 
-def get_information(word, sentence_list) :
-
-    word_count = sentence_list.count(word)
-    return(1 - (math.log10(word_count + 1)/math.log10(len(sentence_list) + 1)))
+def get_information(sentence_list) :
+    semantic_vector = []
+    for word in sentence_list :
+        word_count = sentence_list.count(word)
+        semantic_vector.append(1 - (math.log(word_count + 1)/math.log(len(sentence_list) + 1)))
+    return semantic_vector
 
 def semantic_similarity(T1, T2) :
     #dataSetI = [0.390, 0.330, 0.179, 0.146, 0.239, 0.074, 0, 0.082, 0.1, 0, 0, 0, 0.263, 0.288]
@@ -64,10 +67,15 @@ def semantic_similarity(T1, T2) :
     return(1 - spatial.distance.cosine(T1, T2))
 
 def word_order_similarity(r1, r2) :
+    #r1 and r2 should be numpy array
     #r1 = np.array([1, 2, 3, 4, 5, 6, 0, 3, 3, 0, 0, 0, 1, 1])
     #r2 = np.array([4, 0, 3, 0, 0, 0, 1, 2, 3, 5, 6, 7, 8, 9])
     return 1.0 - (np.linalg.norm(r1 - r2) / np.linalg.norm(r1 + r2))
 
+def overall_sentence_similarity(delta, Ss, Sr) :
+    #Ss = 0.6139
+    #Sr = 0.2023
+    return((delta * Ss) + ((1-delta) * Sr))
 
 if __name__ == '__main__' :
     T1 = "RAM keeps things being worked with"
@@ -81,6 +89,14 @@ if __name__ == '__main__' :
         if word not in T:
             T.append(word)
 
-    similarity_function(T1.split(), T2.split(), T)
-    #semantic_vector = get_information(T)
+    score1, word_order_vector1 = similarity_function(T1.split(), T)
+    score2, word_order_vector2 = similarity_function(T2.split(), T)
+    pdb.set_trace()
+    semantic_vector1 = get_information(T1.split())
+    semantic_vector2 = get_information(T2.split())
     #print(semantic_vector)
+    Ss = semantic_similarity(semantic_vector1, semantic_vector2)
+    Sr = word_order_similarity(word_order_vector1, word_order_vector2)
+
+    delta = 0.85
+    similarity_score = overall_sentence_similarity(delta, Ss, Sr)
