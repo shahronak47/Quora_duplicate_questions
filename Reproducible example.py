@@ -1,8 +1,149 @@
-from scipy import spatial
+import nltk
 import pdb
 from nltk.corpus import wordnet
 import math
 import numpy as np
+import sys
+from nltk.corpus import brown
+
+
+#Defining constants
+delta = 0.85
+threshold = 0.2
+ALPHA = 0.2
+BETA = 0.45
+ETA = 0.4
+brown_freqs = dict()
+N = 0
+
+
+
+def semantic_similarity(sentence_1, sentence_2):
+
+    info_content_norm = True
+    words_1 = nltk.word_tokenize(sentence_1)
+    words_2 = nltk.word_tokenize(sentence_2)
+    joint_words = set(words_1).union(set(words_2))
+    vec_1 = semantic_vector(words_1, joint_words, info_content_norm)
+    vec_2 = semantic_vector(words_2, joint_words, info_content_norm)
+    return np.dot(vec_1, vec_2.T) / (np.linalg.norm(vec_1) * np.linalg.norm(vec_2))
+
+
+def semantic_vector(words, joint_words, info_content_norm):
+    sent_set = set(words)
+    semvec = np.zeros(len(joint_words))
+    i = 0
+    for joint_word in joint_words:
+        if joint_word in sent_set:
+            # if word in union exists in the sentence, s(i) = 1 (unnormalized)
+            semvec[i] = 1.0
+            if info_content_norm:
+                semvec[i] = semvec[i] * math.pow(info_content(joint_word), 2)
+        else:
+            # find the most similar word in the joint set and set the sim value
+            sim_word, max_sim = most_similar_word(joint_word, sent_set)
+            semvec[i] = threshold if max_sim > threshold else 0.0
+            if info_content_norm:
+                semvec[i] = semvec[i] * info_content(joint_word) * info_content(sim_word)
+        i = i + 1
+    return semvec
+
+def most_similar_word(word, word_set):
+    max_sim = -1.0
+    sim_word = ""
+    for ref_word in word_set:
+      sim = word_similarity(word, ref_word)
+      if sim > max_sim:
+          max_sim = sim
+          sim_word = ref_word
+    return sim_word, max_sim
+
+def word_similarity(word_1, word_2):
+    synset_pair = get_best_synset_pair(word_1, word_2)
+    return (length_dist(synset_pair[0], synset_pair[1]) *
+        hierarchy_dist(synset_pair[0], synset_pair[1]))
+
+def get_best_synset_pair(word_1, word_2):
+    synsets_1 = wordnet.synsets(word_1)
+    synsets_2 = wordnet.synsets(word_2)
+    if len(synsets_1) == 0 or len(synsets_2) == 0:
+        return None, None
+    else:
+        max_sim = -1.0
+        best_pair = None, None
+        for synset_1 in synsets_1:
+            for synset_2 in synsets_2:
+                sim = wordnet.path_similarity(synset_1, synset_2)
+                if sim != None and sim > max_sim:
+                    max_sim = sim
+                    best_pair = synset_1, synset_2
+        return best_pair
+
+def length_dist(synset_1, synset_2):
+    l_dist = sys.maxsize
+    if synset_1 is None or synset_2 is None:
+        return 0.0
+    if synset_1 == synset_2:
+        # if synset_1 and synset_2 are the same synset return 0
+        l_dist = 0.0
+    else:
+        wset_1 = set([str(x.name()) for x in synset_1.lemmas()])
+        wset_2 = set([str(x.name()) for x in synset_2.lemmas()])
+        if len(wset_1.intersection(wset_2)) > 0:
+            # if synset_1 != synset_2 but there is word overlap, return 1.0
+            l_dist = 1.0
+        else:
+            # just compute the shortest path between the two
+            l_dist = synset_1.shortest_path_distance(synset_2)
+            if l_dist is None:
+                l_dist = 0.0
+    # normalize path length to the range [0,1]
+    return math.exp(-ALPHA * l_dist)
+
+def hierarchy_dist(synset_1, synset_2):
+    h_dist = sys.maxsize
+    if synset_1 is None or synset_2 is None:
+        return h_dist
+    if synset_1 == synset_2:
+        # return the depth of one of synset_1 or synset_2
+        h_dist = max([x[1] for x in synset_1.hypernym_distances()])
+    else:
+        # find the max depth of least common subsumer
+        hypernyms_1 = {x[0]: x[1] for x in synset_1.hypernym_distances()}
+        hypernyms_2 = {x[0]: x[1] for x in synset_2.hypernym_distances()}
+        lcs_candidates = set(hypernyms_1.keys()).intersection(
+            set(hypernyms_2.keys()))
+        if len(lcs_candidates) > 0:
+            lcs_dists = []
+            for lcs_candidate in lcs_candidates:
+                lcs_d1 = 0
+                if lcs_candidate in hypernyms_1:
+                    lcs_d1 = hypernyms_1[lcs_candidate]
+                lcs_d2 = 0
+                if lcs_candidate in hypernyms_2:
+                    lcs_d2 = hypernyms_2[lcs_candidate]
+                lcs_dists.append(max([lcs_d1, lcs_d2]))
+            h_dist = max(lcs_dists)
+        else:
+            h_dist = 0
+    return ((math.exp(BETA * h_dist) - math.exp(-BETA * h_dist)) /
+            (math.exp(BETA * h_dist) + math.exp(-BETA * h_dist)))
+
+
+def info_content(lookup_word):
+    global N
+    if N == 0:
+        for sent in brown.sents():
+            for word in sent:
+                word = word.lower()
+                if word not in brown_freqs:
+                    brown_freqs[word] = 0
+                brown_freqs[word] = brown_freqs[word] + 1
+                N = N + 1
+    lookup_word = lookup_word.lower()
+    n = 0 if lookup_word not in brown_freqs else brown_freqs[lookup_word]
+    return 1.0 - (math.log(n + 1) / math.log(N + 1))
+
 
 def similarity_function(T1, T) :
 
@@ -32,7 +173,7 @@ def similarity_function(T1, T) :
             else:
                 #If the similarity is above the threshold then only include it
                 s1_try = [x for x in s1_try if x is not None]
-                if max(s1_try) > 0.2 :
+                if max(s1_try) > threshold :
                     ind = s1_try.index(max(s1_try))
                     s1.append(s1_try[ind])
                     s1_word.append(s1_word_try[ind])
@@ -43,16 +184,12 @@ def similarity_function(T1, T) :
 
     word_order_vector = []
     for i in range(len(s1)) :
-        #print("Original Word :", original_word[i] , "Matched Word :", s1_word[i], "Score : " , s1[i])
-        #print("Iw1: " ,get_information(original_word[i], T))
-        #print("Iw1bar: ", get_information(s1_word[i], T1.split()))
-        #print(s1[i] * get_information(original_word[i], T) * get_information(s1_word[i], T1.split()))
         if s1_word[i] == "No match" :
             word_order_vector.append(0)
         else :
             word_order_vector.append(T1.index(s1_word[i]) + 1)
 
-    return s1, word_order_vector
+    return word_order_vector
 
 def get_information(sentence_list) :
     semantic_vector = []
@@ -61,25 +198,16 @@ def get_information(sentence_list) :
         semantic_vector.append(1 - (math.log(word_count + 1)/math.log(len(sentence_list) + 1)))
     return semantic_vector
 
-def semantic_similarity(T1, T2) :
-    #dataSetI = [0.390, 0.330, 0.179, 0.146, 0.239, 0.074, 0, 0.082, 0.1, 0, 0, 0, 0.263, 0.288]
-    #dataSetII = [0.390, 0, 0.1, 0, 0, 0, 0.023, 0.479, 0.285, 0.075, 0.043, 0.354, 0.267, 0.321]
-    return(1 - spatial.distance.cosine(T1, T2))
-
 def word_order_similarity(r1, r2) :
     #r1 and r2 should be numpy array
-    #r1 = np.array([1, 2, 3, 4, 5, 6, 0, 3, 3, 0, 0, 0, 1, 1])
-    #r2 = np.array([4, 0, 3, 0, 0, 0, 1, 2, 3, 5, 6, 7, 8, 9])
     return 1.0 - (np.linalg.norm(r1 - r2) / np.linalg.norm(r1 + r2))
 
-def overall_sentence_similarity(delta, Ss, Sr) :
-    #Ss = 0.6139
-    #Sr = 0.2023
+def overall_sentence_similarity(Ss, Sr) :
     return((delta * Ss) + ((1-delta) * Sr))
 
 if __name__ == '__main__' :
     T1 = "RAM keeps things being worked with"
-    T2 = "The CPU uses RAM as a short term memory store"
+    T2 = "The CPU uses RAM as a shortterm memory store"
 
     T = []
     # Combine words from both the sentences
@@ -89,14 +217,11 @@ if __name__ == '__main__' :
         if word not in T:
             T.append(word)
 
-    score1, word_order_vector1 = similarity_function(T1.split(), T)
-    score2, word_order_vector2 = similarity_function(T2.split(), T)
-    pdb.set_trace()
-    semantic_vector1 = get_information(T1.split())
-    semantic_vector2 = get_information(T2.split())
-    #print(semantic_vector)
-    Ss = semantic_similarity(semantic_vector1, semantic_vector2)
-    Sr = word_order_similarity(word_order_vector1, word_order_vector2)
 
-    delta = 0.85
-    similarity_score = overall_sentence_similarity(delta, Ss, Sr)
+    word_order_vector1 = similarity_function(T1.split(), T)
+    word_order_vector2 = similarity_function(T2.split(), T)
+    Sr = word_order_similarity(np.array(word_order_vector1), np.array(word_order_vector2))
+
+    Ss = semantic_similarity(T1, T2)
+    similarity_score = overall_sentence_similarity(Ss, Sr)
+    print(similarity_score)
