@@ -167,12 +167,12 @@ def similarity_function(T1, T) :
                         s1_try.append(sys.wup_similarity(t1_syn))
                         s1_word_try.append(t1_word)
 
+            s1_try = [x for x in s1_try if x is not None]
             if s1_try == []:
                 s1.append(0)
                 s1_word.append('No match')
             else:
                 #If the similarity is above the threshold then only include it
-                s1_try = [x for x in s1_try if x is not None]
                 if max(s1_try) > threshold :
                     ind = s1_try.index(max(s1_try))
                     s1.append(s1_try[ind])
@@ -205,10 +205,7 @@ def word_order_similarity(r1, r2) :
 def overall_sentence_similarity(Ss, Sr) :
     return((delta * Ss) + ((1-delta) * Sr))
 
-if __name__ == '__main__' :
-    T1 = "RAM keeps things being worked with"
-    T2 = "The CPU uses RAM as a shortterm memory store"
-
+def combine_main(T1, T2) :
     T = []
     # Combine words from both the sentences
     combined_list = T1.split() + T2.split()
@@ -217,7 +214,6 @@ if __name__ == '__main__' :
         if word not in T:
             T.append(word)
 
-
     word_order_vector1 = similarity_function(T1.split(), T)
     word_order_vector2 = similarity_function(T2.split(), T)
     Sr = word_order_similarity(np.array(word_order_vector1), np.array(word_order_vector2))
@@ -225,3 +221,9 @@ if __name__ == '__main__' :
     Ss = semantic_similarity(T1, T2)
     similarity_score = overall_sentence_similarity(Ss, Sr)
     print(similarity_score)
+
+if __name__ == '__main__' :
+    T1 = "RAM keeps things being worked with"
+    T2 = "The CPU uses RAM as a shortterm memory store"
+    combine_main(T1, T2)
+
