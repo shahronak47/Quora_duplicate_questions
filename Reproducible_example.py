@@ -220,10 +220,10 @@ def combine_main(T1, T2) :
 
     Ss = semantic_similarity(T1, T2)
     similarity_score = overall_sentence_similarity(Ss, Sr)
-    print(similarity_score)
+    return similarity_score
 
 if __name__ == '__main__' :
     T1 = "RAM keeps things being worked with"
     T2 = "The CPU uses RAM as a shortterm memory store"
-    combine_main(T1, T2)
+    similarity_score = combine_main(T1, T2)
 
