@@ -212,7 +212,7 @@ def get_POS_score(T1, T2) :
     subject1.extend(object1)
     subject2.extend(object2)
     common_elemnts = list(set(subject1).intersection(subject2))
-    pos_score = [1 if len(common_elemnts) > 0 else 0]
+    pos_score = 1 if len(common_elemnts) > 0 else 0
     return pos_score
 
 
