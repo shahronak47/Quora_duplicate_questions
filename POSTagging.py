@@ -13,9 +13,9 @@ def get_subject_object (sentence) :
         #Search for token having subj in them
         if re.search('subj', tok.dep_) :
             #Get the corresponding words
-            subject.append(tok.text)
+            subject.append(tok.lemma_)
         # Search for token having obj in them
         if re.search('obj', tok.dep_) :
-            object.append(tok.text)
+            object.append(tok.lemma_)
 
     return subject, object

@@ -5,6 +5,7 @@ import math
 import numpy as np
 import sys
 from nltk.corpus import brown
+from POSTagging import get_subject_object
 
 
 #Defining constants
@@ -205,6 +206,16 @@ def word_order_similarity(r1, r2) :
 def overall_sentence_similarity(Ss, Sr) :
     return((delta * Ss) + ((1-delta) * Sr))
 
+def get_POS_score(T1, T2) :
+    subject1, object1 = get_subject_object(T1)
+    subject2, object2 = get_subject_object(T2)
+    subject1.extend(object1)
+    subject2.extend(object2)
+    common_elemnts = list(set(subject1).intersection(subject2))
+    pos_score = [1 if len(common_elemnts) > 0 else 0]
+    return pos_score
+
+
 def combine_main(T1, T2) :
     T = []
     # Combine words from both the sentences
@@ -220,10 +231,12 @@ def combine_main(T1, T2) :
 
     Ss = semantic_similarity(T1, T2)
     similarity_score = overall_sentence_similarity(Ss, Sr)
+    if similarity_score < 0.5 :
+        similarity_score = get_POS_score(T1, T2)
+
     return similarity_score
 
 if __name__ == '__main__' :
     T1 = "RAM keeps things being worked with"
     T2 = "The CPU uses RAM as a shortterm memory store"
     similarity_score = combine_main(T1, T2)
-
