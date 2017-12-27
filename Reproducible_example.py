@@ -209,34 +209,42 @@ def overall_sentence_similarity(Ss, Sr) :
 def get_POS_score(T1, T2) :
     subject1, object1 = get_subject_object(T1)
     subject2, object2 = get_subject_object(T2)
+    pdb.set_trace()
     subject1.extend(object1)
     subject2.extend(object2)
-    common_elemnts = list(set(subject1).intersection(subject2))
-    pos_score = 1 if len(common_elemnts) > 0 else 0
+    pos_score = 1 if set(subject2).issubset(subject1) or set(subject1).issubset(subject2) else 0
     return pos_score
 
 
 def combine_main(T1, T2) :
-    T = []
-    # Combine words from both the sentences
-    combined_list = T1.split() + T2.split()
-    # Keep only unique words
-    for word in combined_list:
-        if word not in T:
-            T.append(word)
-
-    word_order_vector1 = similarity_function(T1.split(), T)
-    word_order_vector2 = similarity_function(T2.split(), T)
-    Sr = word_order_similarity(np.array(word_order_vector1), np.array(word_order_vector2))
-
-    Ss = semantic_similarity(T1, T2)
-    similarity_score = overall_sentence_similarity(Ss, Sr)
-    if similarity_score < 0.5 :
+    #If there are more than 50% common words send it to get_POS_score function
+    word_split_T1 = T1.split()
+    word_split_T2 = T2.split()
+    common_word_length = len(set(word_split_T1).intersection(word_split_T2))
+    if common_word_length > (min(len(word_split_T1), len(word_split_T2)))/2 : 
         similarity_score = get_POS_score(T1, T2)
+    else : 
+    
+        T = []
+        # Combine words from both the sentences
+        combined_list = word_split_T1 + word_split_T2
+        # Keep only unique words
+        for word in combined_list:
+            if word not in T:
+                T.append(word)
+
+        word_order_vector1 = similarity_function(T1.split(), T)
+        word_order_vector2 = similarity_function(T2.split(), T)
+        Sr = word_order_similarity(np.array(word_order_vector1), np.array(word_order_vector2))
+
+        Ss = semantic_similarity(T1, T2)
+        similarity_score = overall_sentence_similarity(Ss, Sr)
+    #if similarity_score < 0.5 :
+    #    similarity_score = get_POS_score(T1, T2)
 
     return similarity_score
 
 if __name__ == '__main__' :
-    T1 = "RAM keeps things being worked with"
-    T2 = "The CPU uses RAM as a shortterm memory store"
-    similarity_score = combine_main(T1, T2)
+    T1 = "Where can I find a European family office database?"
+    T2 = "Where do I find a U.S. family office database?"
+    sub1 = get_POS_score(T1, T2)
