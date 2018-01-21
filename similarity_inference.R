@@ -6,9 +6,11 @@ table(df$answer == df$is_duplicate)/nrow(df)
 #FALSE      TRUE 
 #0.3465347 0.6534653 
 
+#FALSE      TRUE 
+#0.3465347 0.6534653 
+
 #Get wrong solutions
 new_df <- df[df$answer != df$is_duplicate, ]
-<<<<<<< HEAD
 write.csv(new_df, "C:\\Users\\Ronak Shah\\Google Drive\\Quora_duplicate_questions\\wrong_answers.csv")
 
 
@@ -27,10 +29,7 @@ sort(table(cut(new_df$similarity_score, breaks = seq(0, 1, 0.1))))
 
 
 #Get one/two word difference questions
-=======
 write.csv(new_df, "/Users/ronakshah/Downloads/wrong_answer_2_sample.csv")
-
->>>>>>> 5740754639dcc60085a2594ce74aead18218431d
 
 #library(stringr)
 #close_df <- df[abs(str_count(df$question1, " ") - str_count(df$question2, " ")) < 3, ]
