@@ -239,12 +239,5 @@ def combine_main(T1, T2) :
 
         Ss = semantic_similarity(T1, T2)
         similarity_score = overall_sentence_similarity(Ss, Sr)
-    #if similarity_score < 0.5 :
-    #    similarity_score = get_POS_score(T1, T2)
 
     return similarity_score
-
-if __name__ == '__main__' :
-    T1 = "Where can I find a European family office database?"
-    T2 = "Where do I find a U.S. family office database?"
-    sub1 = get_POS_score(T1, T2)
